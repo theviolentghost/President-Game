@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>U.S. Presidents Memory Game</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #4CAF50;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .box {
+            background-color: #333;
+            border: 1px solid #4CAF50;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .box:hover {
+            background-color: #444;
+        }
+        .box.revealed {
+            background-color: #4CAF50;
+        }
+        #quiz, #number-quiz {
+            background-color: #333;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        #quiz-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+        .quiz-box {
+            background-color: #444;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+        }
+        .quiz-box.selected {
+            border: 2px solid #4CAF50;
+        }
+        .quiz-box .order {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+        }
+        .quiz-box.correct {
+            background-color: #4CAF50;
+        }
+        .quiz-box.incorrect {
+            background-color: #f44336;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #number-quiz input {
+            padding: 5px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>U.S. Presidents Memory Game</h1>
+        <div class="grid" id="grid"></div>
+        <div id="quiz">
+            <h2>Quiz: Order the Presidents</h2>
+            <p>Click on the presidents in the correct order:</p>
+            <div id="quiz-grid"></div>
+            <button onclick="checkOrder()">Check Order</button>
+            <button onclick="resetQuiz()">Reset Quiz</button>
+        </div>
+        <div id="number-quiz">
+            <h2>Number Quiz</h2>
+            <div id="question"></div>
+            <input type="text" id="answer" placeholder="Enter your answer">
+            <button onclick="checkNumberQuiz()">Submit</button>
+            <button onclick="nextNumberQuiz()">Next Question</button>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const presidents = [
+            { name: "George Washington", terms: 2, years: "1789-1797" },
+            { name: "John Adams", terms: 1, years: "1797-1801" },
+            { name: "Thomas Jefferson", terms: 2, years: "1801-1809" },
+            { name: "James Madison", terms: 2, years: "1809-1817" },
+            { name: "James Monroe", terms: 2, years: "1817-1825" },
+            { name: "John Quincy Adams", terms: 1, years: "1825-1829" },
+            { name: "Andrew Jackson", terms: 2, years: "1829-1837" },
+            { name: "Martin Van Buren", terms: 1, years: "1837-1841" },
+            { name: "William Henry Harrison", terms: 1, years: "1841" },
+            { name: "John Tyler", terms: 1, years: "1841-1845" },
+            { name: "James K. Polk", terms: 1, years: "1845-1849" },
+            { name: "Zachary Taylor", terms: 1, years: "1849-1850" },
+            { name: "Millard Fillmore", terms: 1, years: "1850-1853" },
+            { name: "Franklin Pierce", terms: 1, years: "1853-1857" },
+            { name: "James Buchanan", terms: 1, years: "1857-1861" },
+            { name: "Abraham Lincoln", terms: 2, years: "1861-1865" },
+            { name: "Andrew Johnson", terms: 1, years: "1865-1869" },
+            { name: "Ulysses S. Grant", terms: 2, years: "1869-1877" },
+            { name: "Rutherford B. Hayes", terms: 1, years: "1877-1881" },
+            { name: "James A. Garfield", terms: "<1", years: "1881" },
+            { name: "Chester A. Arthur", terms: 1, years: "1881-1885" },
+            { name: "Grover Cleveland", terms: "1st", years: "1885-1889" }, // 1st term
+            { name: "Benjamin Harrison", terms: 1, years: "1889-1893" },
+            { name: "Grover Cleveland", terms: "2nd", years: "1893-1897" }, // 2nd term
+            { name: "William McKinley", terms: 2, years: "1897-1901" },
+            { name: "Theodore Roosevelt", terms: 2, years: "1901-1909" },
+            { name: "William Howard Taft", terms: 1, years: "1909-1913" },
+            { name: "Woodrow Wilson", terms: 2, years: "1913-1921" },
+            { name: "Warren G. Harding", terms: 1, years: "1921-1923" },
+            { name: "Calvin Coolidge", terms: 1, years: "1923-1929" },
+            { name: "Herbert Hoover", terms: 1, years: "1929-1933" },
+            { name: "Franklin D. Roosevelt", terms: 4, years: "1933-1945" },
+            { name: "Harry S. Truman", terms: 2, years: "1945-1953" },
+            { name: "Dwight D. Eisenhower", terms: 2, years: "1953-1961" },
+            { name: "John F. Kennedy", terms: 1, years: "1961-1963" },
+            { name: "Lyndon B. Johnson", terms: 1, years: "1963-1969" },
+            { name: "Richard Nixon", terms: 2, years: "1969-1974" },
+            { name: "Gerald Ford", terms: 1, years: "1974-1977" },
+            { name: "Jimmy Carter", terms: 1, years: "1977-1981" },
+            { name: "Ronald Reagan", terms: 2, years: "1981-1989" },
+            { name: "George H. W. Bush", terms: 1, years: "1989-1993" },
+            { name: "Bill Clinton", terms: 2, years: "1993-2001" },
+            { name: "George W. Bush", terms: 2, years: "2001-2009" },
+            { name: "Barack Obama", terms: 2, years: "2009-2017" },
+            { name: "Donald Trump", terms: 1, years: "2017-2021" },
+            { name: "Joe Biden", terms: 1, years: "2021-present" }
+        ];
+
+
+        const grid = document.getElementById('grid');
+        const quizGrid = document.getElementById('quiz-grid');
+
+        presidents.forEach((president, index) => {
+            const box = document.createElement('div');
+            box.className = 'box';
+            box.innerHTML = `<div>${index + 1}</div>`;
+            box.addEventListener('click', () => revealPresident(box, president));
+            grid.appendChild(box);
+        });
+
+        function revealPresident(box, president) {
+
+            if(box.classList.contains("revealed")) {
+                box.className = "box";
+                box.innerHTML = `<div>${presidents.indexOf(president) + 1}</div>`;;
+                return;
+            }
+            box.innerHTML = `
+                <div style="font-size: 1.2rem;margin-bottom: 5px;text-decoration:underline;">${president.name.replace(/\d+/g, '')}</div>
+                <div style="color:#ccc;">Terms: ${president.terms}</div>
+                <div style="color:#ccc;">Years: ${president.years}</div>
+            `;
+            box.classList.add('revealed');
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        let selectedPresidents = [];
+
+        function createQuiz() {
+            quizGrid.innerHTML = '';
+            const shuffledPresidents = [...presidents];
+            shuffleArray(shuffledPresidents);
+
+            shuffledPresidents.forEach((president, index) => {
+                const box = document.createElement('div');
+                const span = document.createElement('span');
+                box.className = 'quiz-box';
+                span.textContent = president.name.replace(/\d+/g, '');
+                box.addEventListener('click', () => toggleSelection(box, president.name));
+                box.appendChild(span);
+                quizGrid.appendChild(box);
+            });
+        }
+
+        function toggleSelection(box, presidentName) {
+            if (box.classList.contains('selected')) {
+                box.classList.remove('selected');
+                selectedPresidents = selectedPresidents.filter(name => name !== presidentName);
+                updateOrder();
+            } else {
+                box.classList.add('selected');
+                selectedPresidents.push(presidentName);
+                updateOrder();
+            }
+        }
+
+        function updateOrder() {
+            document.querySelectorAll('.quiz-box').forEach(box => {
+                const orderElem = box.querySelector('.order');
+                if (orderElem) {
+                    orderElem.remove();
+                }
+            });
+
+            selectedPresidents.forEach((name, index) => {
+                const box = Array.from(document.querySelectorAll('.quiz-box')).find(box => box.textContent === name);
+                const orderElem = document.createElement('div');
+                orderElem.className = 'order';
+                orderElem.textContent = index + 1;
+                box.appendChild(orderElem);
+            });
+        }
+
+        function checkOrder() {
+            const correctOrder = presidents.map(p => p.name);
+            //selectedPresidents
+            const elemsParents = document.querySelectorAll('.quiz-box');
+            const elems = document.querySelectorAll('.quiz-box > span');
+            const elemsdNames = Array.from(elems).map(elem => elem.textContent);
+
+            for(let i = 0; i < selectedPresidents.length; i++) {
+                const index = elemsdNames.indexOf(selectedPresidents[i]);
+                if(selectedPresidents[i] !== correctOrder[i]) {
+                    elemsParents[index].classList.add('incorrect');
+                } else {
+                    elemsParents[index].classList.add('correct');
+                }
+                elemsdNames[index] = "#guessed";
+            }
+        }
+
+        function resetQuiz() {
+            selectedPresidents = [];
+            createQuiz();
+        }
+
+        let currentNumberQuiz = null;
+
+        function nextNumberQuiz() {
+            const isPresidentToNumber = Math.random() < 0.5;
+            const randomIndex = Math.floor(Math.random() * presidents.length);
+            
+            if (isPresidentToNumber) {
+                currentNumberQuiz = {
+                    question: `What number president was ${presidents[randomIndex].name}?`,
+                    answer: randomIndex + 1
+                };
+            } else {
+                currentNumberQuiz = {
+                    question: `Who was the ${randomIndex + 1}${getOrdinalSuffix(randomIndex + 1)} president?`,
+                    answer: presidents[randomIndex].name
+                };
+            }
+
+            document.getElementById('question').textContent = currentNumberQuiz.question;
+            document.getElementById('answer').value = '';
+            document.getElementById('result').textContent = '';
+        }
+
+        function getOrdinalSuffix(number) {
+            const j = number % 10;
+            const k = number % 100;
+            if (j == 1 && k != 11) {
+                return "st";
+            }
+            if (j == 2 && k != 12) {
+                return "nd";
+            }
+            if (j == 3 && k != 13) {
+                return "rd";
+            }
+            return "th";
+        }
+
+        function checkNumberQuiz() {
+            const userAnswer = document.getElementById('answer').value.trim();
+            const isCorrect = userAnswer.toLowerCase() === currentNumberQuiz.answer.toString().toLowerCase();
+            
+            document.getElementById('result').textContent = isCorrect ? 
+                'Correct!' : 
+                `Incorrect. The correct answer is ${currentNumberQuiz.answer}.`;
+        }
+
+        createQuiz();
+        nextNumberQuiz();
+    </script>
+</body>
+</html>
